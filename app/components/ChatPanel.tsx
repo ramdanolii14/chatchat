@@ -162,8 +162,9 @@ export default function ChatPanel({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-3 border-b flex items-center justify-between">
-        <div className="flex items-center">
+      {/* ✅ Header dengan padding di mobile */}
+      <div className="relative p-3 border-b flex items-center justify-between">
+        <div className="flex items-center pl-10 sm:pl-0">
           <img
             src={selectedFriend.avatar_url || '/default.jpg'}
             className="w-8 h-8 rounded-full mr-2"
@@ -180,6 +181,7 @@ export default function ChatPanel({
         )}
       </div>
 
+      {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {[...new Map(messages.map((m) => [m.id, m])).values()].map((m) => (
           <div
@@ -200,6 +202,7 @@ export default function ChatPanel({
         <div ref={bottomRef}></div>
       </div>
 
+      {/* Input Box */}
       <div className="p-3 border-t flex items-center space-x-2">
         <button
           onClick={() => fileInputRef.current?.click()}
