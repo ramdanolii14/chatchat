@@ -1,9 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
-import AuthGuard from '@/components/AuthGuard'
-import LeftPanel from '@/components/LeftPanel'
-import ChatPanel from '@/components/ChatPanel'
-import ProfilePanel from '@/components/ProfilePanel'
+import AuthGuard from './components/AuthGuard'
+import LeftPanel from './components/LeftPanel'
+import ChatPanel from './components/ChatPanel'
+import ProfilePanel from './components/ProfilePanel'
 
 export default function Page() {
   const [activeFriend, setActiveFriend] = useState<any>(null)
