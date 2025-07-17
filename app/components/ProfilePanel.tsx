@@ -73,20 +73,20 @@ export default function ProfilePanel({
             <input
               type="text"
               placeholder="Avatar URL"
-              className="p-2 border rounded w-full mb-2"
+              className="p-2 border rounded w-full mb-2 text-sm sm:text-base"
               value={avatar}
               onChange={(e) => setAvatar(e.target.value)}
             />
             <input
               type="text"
               placeholder="Username"
-              className="p-2 border rounded w-full mb-2"
+              className="p-2 border rounded w-full mb-2 text-sm sm:text-base"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
             <textarea
               placeholder="Bio"
-              className="p-2 border rounded w-full mb-3"
+              className="p-2 border rounded w-full mb-3 text-sm sm:text-base"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
             />

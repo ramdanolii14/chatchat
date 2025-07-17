@@ -26,9 +26,16 @@ export default function UploadMenu({ friendId }: { friendId: string }) {
   return (
     <div className="absolute bottom-16 left-4 bg-white p-2 border rounded-md shadow-md space-y-1">
       {['photo', 'video', 'music', 'document'].map(type => (
-        <label key={type} className="block cursor-pointer hover:text-red-500">
+        <label
+          key={type}
+          className="block cursor-pointer hover:text-red-500 text-sm sm:text-base"
+        >
           {type}
-          <input type="file" className="hidden" onChange={(e)=>handleUpload(e,type)} />
+          <input
+            type="file"
+            className="hidden"
+            onChange={(e)=>handleUpload(e,type)}
+          />
         </label>
       ))}
     </div>

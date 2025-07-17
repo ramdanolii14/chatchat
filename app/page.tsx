@@ -23,33 +23,33 @@ export default function HomePage() {
 
   return (
     <AuthGuard>
-      <div className="h-screen flex bg-gray-100">
-        <div className="w-1/4 border-r bg-white">
+      <div className="h-screen flex flex-col md:flex-row bg-gray-100">
+        <div className="w-full md:w-1/4 border-r bg-white h-1/3 md:h-full">
           <LeftPanel
             onSelectFriend={handleSelectFriend}
             onOpenProfile={handleOpenProfile}
           />
         </div>
-        <div className="flex-1 border-r bg-white">
+        <div className="flex-1 border-r bg-white h-1/3 md:h-full">
           {activeFriend ? (
             <ChatPanel
               selectedFriend={activeFriend}
               onOpenProfile={handleOpenProfile}
             />
           ) : (
-            <div className="h-full flex items-center justify-center text-gray-500">
+            <div className="h-full flex items-center justify-center text-gray-500 text-sm md:text-base">
               Pilih teman untuk mulai chat
             </div>
           )}
         </div>
-        <div className="w-1/4 bg-white">
+        <div className="w-full md:w-1/4 bg-white h-1/3 md:h-full">
           {showProfile && activeProfile ? (
             <ProfilePanel
               selectedUser={activeProfile}
               onClose={() => setShowProfile(false)}
             />
           ) : (
-            <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+            <div className="h-full flex items-center justify-center text-gray-400 text-xs md:text-sm">
               Pilih teman lalu klik "Profil"
             </div>
           )}

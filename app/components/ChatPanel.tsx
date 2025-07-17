@@ -35,7 +35,6 @@ export default function ChatPanel({
 
       setMessages(data || [])
 
-      // ✅ Realtime listener (prevent duplicate)
       channel = supabase
         .channel('room-messages')
         .on(
@@ -163,7 +162,6 @@ export default function ChatPanel({
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
       <div className="p-3 border-b flex items-center justify-between">
         <div className="flex items-center">
           <img
@@ -182,12 +180,11 @@ export default function ChatPanel({
         )}
       </div>
 
-      {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {[...new Map(messages.map((m) => [m.id, m])).values()].map((m) => (
           <div
             key={m.id}
-            className={`p-2 rounded-md max-w-xs sm:max-w-sm break-words ${
+            className={`p-2 rounded-md max-w-[80%] sm:max-w-sm break-words ${
               m.sender_id === user?.id
                 ? 'bg-red-500 text-white ml-auto'
                 : 'bg-gray-200 text-black'
@@ -203,7 +200,6 @@ export default function ChatPanel({
         <div ref={bottomRef}></div>
       </div>
 
-      {/* Input Box */}
       <div className="p-3 border-t flex items-center space-x-2">
         <button
           onClick={() => fileInputRef.current?.click()}
@@ -220,7 +216,7 @@ export default function ChatPanel({
         <input
           type="text"
           placeholder="Ketik pesan..."
-          className="flex-1 p-2 border rounded-md"
+          className="flex-1 p-2 border rounded-md text-sm sm:text-base"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && sendMessage()}

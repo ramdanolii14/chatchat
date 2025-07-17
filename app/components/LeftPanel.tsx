@@ -24,7 +24,6 @@ export default function LeftPanel({
     if (!userData.user) return
     setUser(userData.user)
 
-    // ✅ Ambil profil user login dari tabel profiles
     const { data: myProfile } = await supabase
       .from('profiles')
       .select('id, username, avatar_url')
@@ -33,7 +32,6 @@ export default function LeftPanel({
 
     if (myProfile) setUserProfile(myProfile)
 
-    // ✅ Ambil daftar teman
     const { data: friendData } = await supabase
       .from('friends')
       .select('*')
@@ -73,24 +71,22 @@ export default function LeftPanel({
 
   return (
     <div className="h-full bg-white p-3 flex flex-col">
-      {/* Search */}
       <div className="flex mb-3">
         <input
           type="text"
           placeholder="Cari username..."
-          className="flex-1 p-2 border rounded-l-md"
+          className="flex-1 p-2 border rounded-l-md text-sm sm:text-base"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <button
           onClick={searchUser}
-          className="bg-red-500 text-white px-3 rounded-r-md"
+          className="bg-red-500 text-white px-3 rounded-r-md text-sm sm:text-base"
         >
           Cari
         </button>
       </div>
 
-      {/* Teman */}
       <div className="overflow-y-auto flex-1">
         <h3 className="font-bold text-sm mb-1">Teman</h3>
         {friends.map((friend) => (
@@ -104,7 +100,7 @@ export default function LeftPanel({
                 src={friend.avatar_url || '/default.jpg'}
                 className="w-8 h-8 rounded-full mr-2"
               />
-              <span>{friend.username}</span>
+              <span className="text-sm sm:text-base">{friend.username}</span>
             </div>
             <button
               onClick={(e) => {
@@ -119,7 +115,6 @@ export default function LeftPanel({
         ))}
       </div>
 
-      {/* User Info + Logout */}
       {userProfile && (
         <div className="mt-3 border-t pt-3 flex items-center justify-between">
           <div
@@ -132,7 +127,10 @@ export default function LeftPanel({
             />
             <span className="text-sm">{userProfile.username}</span>
           </div>
-          <button onClick={logout} className="text-xs text-red-500 underline">
+          <button
+            onClick={logout}
+            className="text-xs text-red-500 underline"
+          >
             Logout
           </button>
         </div>
