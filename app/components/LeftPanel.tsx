@@ -10,9 +10,10 @@ export default function LeftPanel({
   onOpenProfile: (f: any) => void
 }) {
   const [friends, setFriends] = useState<any[]>([])
-  const [pendingRequests, setPendingRequests] = useState<any[]>([])
+  const [pendingFriends, setPendingFriends] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [searchResult, setSearchResult] = useState<any[]>([])
+  const [user, setUser] = useState<any>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
 
   useEffect(() => {
@@ -22,22 +23,21 @@ export default function LeftPanel({
   async function fetchUserAndFriends() {
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user) return
+    setUser(userData.user)
 
-    // ✅ Ambil profil user login
+    // ✅ Profil user login
     const { data: myProfile } = await supabase
       .from('profiles')
       .select('id, username, avatar_url')
       .eq('id', userData.user.id)
       .single()
-    setUserProfile(myProfile)
+    if (myProfile) setUserProfile(myProfile)
 
-    // ✅ Ambil teman yang sudah diterima
+    // ✅ Teman (accepted)
     const { data: friendData } = await supabase
       .from('friends')
       .select('*')
-      .or(
-        `requester_id.eq.${userData.user.id},receiver_id.eq.${userData.user.id}`
-      )
+      .or(`requester_id.eq.${userData.user.id},receiver_id.eq.${userData.user.id}`)
       .eq('status', 'accepted')
 
     const friendIds =
@@ -51,27 +51,31 @@ export default function LeftPanel({
         .select('id, username, avatar_url')
         .in('id', friendIds)
       setFriends(friendProfiles || [])
+    } else {
+      setFriends([])
     }
 
-    // ✅ Ambil permintaan pertemanan pending
+    // ✅ Pending Request (yang kita TERIMA)
     const { data: pendingData } = await supabase
       .from('friends')
-      .select('id, requester_id')
+      .select('*')
       .eq('receiver_id', userData.user.id)
       .eq('status', 'pending')
 
-    if (pendingData?.length) {
-      const requesterIds = pendingData.map((r) => r.requester_id)
-      const { data: requesterProfiles } = await supabase
+    const pendingIds = pendingData?.map((p) => p.requester_id) || []
+    if (pendingIds.length > 0) {
+      const { data: pendingProfiles } = await supabase
         .from('profiles')
         .select('id, username, avatar_url')
-        .in('id', requesterIds)
-      setPendingRequests(requesterProfiles || [])
+        .in('id', pendingIds)
+      setPendingFriends(pendingProfiles || [])
+    } else {
+      setPendingFriends([])
     }
   }
 
   async function searchUser() {
-    if (!search.trim()) return
+    if (!search) return
     const { data } = await supabase
       .from('profiles')
       .select('id, username, avatar_url')
@@ -79,15 +83,46 @@ export default function LeftPanel({
     setSearchResult(data || [])
   }
 
+  async function sendFriendRequest(friendId: string) {
+    if (!user) return
+    const { error } = await supabase.from('friends').insert({
+      requester_id: user.id,
+      receiver_id: friendId,
+      status: 'pending'
+    })
+    if (!error) {
+      alert('Permintaan pertemanan dikirim!')
+      setSearch('')
+      setSearchResult([])
+      fetchUserAndFriends()
+    } else {
+      console.error(error)
+    }
+  }
+
   async function acceptFriendRequest(friendId: string) {
     const { error } = await supabase
       .from('friends')
       .update({ status: 'accepted' })
+      .eq('receiver_id', user.id)
       .eq('requester_id', friendId)
-      .eq('receiver_id', userProfile.id)
     if (!error) {
-      alert('Permintaan diterima!')
       fetchUserAndFriends()
+    } else {
+      console.error(error)
+    }
+  }
+
+  async function rejectFriendRequest(friendId: string) {
+    const { error } = await supabase
+      .from('friends')
+      .delete()
+      .eq('receiver_id', user.id)
+      .eq('requester_id', friendId)
+    if (!error) {
+      fetchUserAndFriends()
+    } else {
+      console.error(error)
     }
   }
 
@@ -98,7 +133,7 @@ export default function LeftPanel({
 
   return (
     <div className="h-full bg-white p-3 flex flex-col">
-      {/* Search */}
+      {/* ✅ Search */}
       <div className="flex mb-3">
         <input
           type="text"
@@ -115,57 +150,72 @@ export default function LeftPanel({
         </button>
       </div>
 
-      {/* Hasil pencarian */}
-      {searchResult.length > 0 && (
-        <div className="mb-3">
-          <h3 className="font-bold text-sm mb-1">Hasil Pencarian</h3>
-          {searchResult.map((user) => (
-            <div
-              key={user.id}
-              className="cursor-pointer flex items-center justify-between p-2 hover:bg-red-100 rounded-md"
-              onClick={() => onSelectFriend(user)}
-            >
-              <div className="flex items-center">
-                <img
-                  src={user.avatar_url || '/default.jpg'}
-                  className="w-8 h-8 rounded-full mr-2"
-                />
-                <span>{user.username}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Permintaan pertemanan */}
-      {pendingRequests.length > 0 && (
-        <div className="mb-3">
-          <h3 className="font-bold text-sm mb-1">Permintaan Pertemanan</h3>
-          {pendingRequests.map((req) => (
-            <div
-              key={req.id}
-              className="flex items-center justify-between p-2 bg-yellow-50 rounded-md mb-1"
-            >
-              <div className="flex items-center">
-                <img
-                  src={req.avatar_url || '/default.jpg'}
-                  className="w-8 h-8 rounded-full mr-2"
-                />
-                <span>{req.username}</span>
-              </div>
-              <button
-                onClick={() => acceptFriendRequest(req.id)}
-                className="text-xs text-green-600 underline"
+      <div className="overflow-y-auto flex-1 space-y-2">
+        {/* ✅ Search Result */}
+        {searchResult.length > 0 && (
+          <>
+            <h3 className="font-bold text-sm mb-1 text-blue-600">Hasil Pencarian</h3>
+            {searchResult.map((profile) => (
+              <div
+                key={profile.id}
+                className="flex items-center justify-between p-2 hover:bg-red-50 rounded-md"
               >
-                Terima
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+                <div className="flex items-center">
+                  <img
+                    src={profile.avatar_url || '/default.jpg'}
+                    className="w-8 h-8 rounded-full mr-2"
+                  />
+                  <span>{profile.username}</span>
+                </div>
+                <button
+                  onClick={() => sendFriendRequest(profile.id)}
+                  className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                >
+                  Tambah
+                </button>
+              </div>
+            ))}
+            <hr className="my-2" />
+          </>
+        )}
 
-      {/* Teman */}
-      <div className="overflow-y-auto flex-1">
+        {/* ✅ Pending Friend Request */}
+        {pendingFriends.length > 0 && (
+          <>
+            <h3 className="font-bold text-sm mb-1 text-yellow-600">Permintaan Teman</h3>
+            {pendingFriends.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-center justify-between p-2 bg-yellow-50 rounded-md"
+              >
+                <div className="flex items-center">
+                  <img
+                    src={p.avatar_url || '/default.jpg'}
+                    className="w-8 h-8 rounded-full mr-2"
+                  />
+                  <span>{p.username}</span>
+                </div>
+                <div className="space-x-1">
+                  <button
+                    onClick={() => acceptFriendRequest(p.id)}
+                    className="text-xs bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+                  >
+                    Terima
+                  </button>
+                  <button
+                    onClick={() => rejectFriendRequest(p.id)}
+                    className="text-xs bg-gray-400 text-white px-2 py-1 rounded hover:bg-gray-500"
+                  >
+                    Tolak
+                  </button>
+                </div>
+              </div>
+            ))}
+            <hr className="my-2" />
+          </>
+        )}
+
+        {/* ✅ Teman */}
         <h3 className="font-bold text-sm mb-1">Teman</h3>
         {friends.map((friend) => (
           <div
@@ -193,7 +243,7 @@ export default function LeftPanel({
         ))}
       </div>
 
-      {/* User Info + Logout */}
+      {/* ✅ User Info + Logout */}
       {userProfile && (
         <div className="mt-3 border-t pt-3 flex items-center justify-between">
           <div
