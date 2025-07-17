@@ -10,10 +10,9 @@ export default function LeftPanel({
   onOpenProfile: (f: any) => void
 }) {
   const [friends, setFriends] = useState<any[]>([])
-  const [requests, setRequests] = useState<any[]>([])
+  const [pendingRequests, setPendingRequests] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [searchResult, setSearchResult] = useState<any[]>([])
-  const [user, setUser] = useState<any>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
 
   useEffect(() => {
@@ -23,63 +22,73 @@ export default function LeftPanel({
   async function fetchUserAndFriends() {
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user) return
-    setUser(userData.user)
 
+    // ✅ Ambil profil user login
     const { data: myProfile } = await supabase
       .from('profiles')
       .select('id, username, avatar_url')
       .eq('id', userData.user.id)
       .single()
+    setUserProfile(myProfile)
 
-    if (myProfile) setUserProfile(myProfile)
-
+    // ✅ Ambil teman yang sudah diterima
     const { data: friendData } = await supabase
       .from('friends')
       .select('*')
       .or(
         `requester_id.eq.${userData.user.id},receiver_id.eq.${userData.user.id}`
       )
+      .eq('status', 'accepted')
 
-    const acceptedIds =
-      friendData
-        ?.filter(f => f.status === 'accepted')
-        .map((f) =>
-          f.requester_id === userData.user.id ? f.receiver_id : f.requester_id
-        ) || []
+    const friendIds =
+      friendData?.map((f) =>
+        f.requester_id === userData.user.id ? f.receiver_id : f.requester_id
+      ) || []
 
-    const pendingIds =
-      friendData
-        ?.filter(
-          f =>
-            f.status === 'pending' &&
-            f.receiver_id === userData.user.id // hanya permintaan yg masuk ke kita
-        )
-        .map(f => f.requester_id) || []
-
-    if (acceptedIds.length > 0) {
+    if (friendIds.length > 0) {
       const { data: friendProfiles } = await supabase
         .from('profiles')
         .select('id, username, avatar_url')
-        .in('id', acceptedIds)
+        .in('id', friendIds)
       setFriends(friendProfiles || [])
     }
 
-    if (pendingIds.length > 0) {
-      const { data: requestProfiles } = await supabase
+    // ✅ Ambil permintaan pertemanan pending
+    const { data: pendingData } = await supabase
+      .from('friends')
+      .select('id, requester_id')
+      .eq('receiver_id', userData.user.id)
+      .eq('status', 'pending')
+
+    if (pendingData?.length) {
+      const requesterIds = pendingData.map((r) => r.requester_id)
+      const { data: requesterProfiles } = await supabase
         .from('profiles')
         .select('id, username, avatar_url')
-        .in('id', pendingIds)
-      setRequests(requestProfiles || [])
+        .in('id', requesterIds)
+      setPendingRequests(requesterProfiles || [])
     }
   }
 
   async function searchUser() {
-    if (!search) return
+    if (!search.trim()) return
     const { data } = await supabase
       .from('profiles')
       .select('id, username, avatar_url')
       .ilike('username', `%${search}%`)
     setSearchResult(data || [])
+  }
+
+  async function acceptFriendRequest(friendId: string) {
+    const { error } = await supabase
+      .from('friends')
+      .update({ status: 'accepted' })
+      .eq('requester_id', friendId)
+      .eq('receiver_id', userProfile.id)
+    if (!error) {
+      alert('Permintaan diterima!')
+      fetchUserAndFriends()
+    }
   }
 
   async function logout() {
@@ -89,40 +98,67 @@ export default function LeftPanel({
 
   return (
     <div className="h-full bg-white p-3 flex flex-col">
+      {/* Search */}
       <div className="flex mb-3">
         <input
           type="text"
           placeholder="Cari username..."
-          className="flex-1 p-2 border rounded-l-md text-sm sm:text-base"
+          className="flex-1 p-2 border rounded-l-md"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <button
           onClick={searchUser}
-          className="bg-red-500 text-white px-3 rounded-r-md text-sm sm:text-base"
+          className="bg-red-500 text-white px-3 rounded-r-md"
         >
           Cari
         </button>
       </div>
 
-      {/* Permintaan Pertemanan */}
-      {requests.length > 0 && (
+      {/* Hasil pencarian */}
+      {searchResult.length > 0 && (
         <div className="mb-3">
-          <h3 className="font-bold text-sm mb-1 text-red-500">Permintaan Pertemanan</h3>
-          {requests.map(req => (
+          <h3 className="font-bold text-sm mb-1">Hasil Pencarian</h3>
+          {searchResult.map((user) => (
+            <div
+              key={user.id}
+              className="cursor-pointer flex items-center justify-between p-2 hover:bg-red-100 rounded-md"
+              onClick={() => onSelectFriend(user)}
+            >
+              <div className="flex items-center">
+                <img
+                  src={user.avatar_url || '/default.jpg'}
+                  className="w-8 h-8 rounded-full mr-2"
+                />
+                <span>{user.username}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Permintaan pertemanan */}
+      {pendingRequests.length > 0 && (
+        <div className="mb-3">
+          <h3 className="font-bold text-sm mb-1">Permintaan Pertemanan</h3>
+          {pendingRequests.map((req) => (
             <div
               key={req.id}
-              className="cursor-pointer flex items-center justify-between p-2 hover:bg-red-100 rounded-md"
-              onClick={() => onOpenProfile(req)}
+              className="flex items-center justify-between p-2 bg-yellow-50 rounded-md mb-1"
             >
               <div className="flex items-center">
                 <img
                   src={req.avatar_url || '/default.jpg'}
                   className="w-8 h-8 rounded-full mr-2"
                 />
-                <span className="text-sm">{req.username}</span>
+                <span>{req.username}</span>
               </div>
-              <span className="text-xs text-gray-400">Pending</span>
+              <button
+                onClick={() => acceptFriendRequest(req.id)}
+                className="text-xs text-green-600 underline"
+              >
+                Terima
+              </button>
             </div>
           ))}
         </div>
@@ -142,7 +178,7 @@ export default function LeftPanel({
                 src={friend.avatar_url || '/default.jpg'}
                 className="w-8 h-8 rounded-full mr-2"
               />
-              <span className="text-sm sm:text-base">{friend.username}</span>
+              <span>{friend.username}</span>
             </div>
             <button
               onClick={(e) => {
@@ -157,6 +193,7 @@ export default function LeftPanel({
         ))}
       </div>
 
+      {/* User Info + Logout */}
       {userProfile && (
         <div className="mt-3 border-t pt-3 flex items-center justify-between">
           <div
@@ -169,10 +206,7 @@ export default function LeftPanel({
             />
             <span className="text-sm">{userProfile.username}</span>
           </div>
-          <button
-            onClick={logout}
-            className="text-xs text-red-500 underline"
-          >
+          <button onClick={logout} className="text-xs text-red-500 underline">
             Logout
           </button>
         </div>
