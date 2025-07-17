@@ -1,8 +1,8 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'Chat App',
-  description: 'Simple Supabase Chat',
+  title: 'ChatChat - By Ramdan',
+  description: 'Chat with others with anonymouse style, we do not take any of your personal data.',
 }
 
 export default function RootLayout({
