@@ -26,7 +26,7 @@ export default function RegisterPage() {
         avatar_url: '',
         bio: ''
       })
-      alert('Pendaftaran berhasil! Silakan login.')
+      alert('Kami telah mengirimkan email konfirmasi! Silahkan cek email kamu')
       window.location.href = '/login'
     }
     setLoading(false)
