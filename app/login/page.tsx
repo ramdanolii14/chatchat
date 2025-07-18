@@ -9,12 +9,22 @@ export default function LoginPage() {
   const router = useRouter()
 
   async function handleLogin() {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password
     })
     if (error) return alert('Login gagal: ' + error.message)
     router.push('/')
+  }
+
+  async function handleGoogleLogin() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/`
+      }
+    })
+    if (error) return alert('Login Google gagal: ' + error.message)
   }
 
   return (
@@ -41,12 +51,26 @@ export default function LoginPage() {
         >
           Masuk
         </button>
+
         <p className="text-sm mt-3 text-center">
           Belum punya akun?{' '}
           <a href="/register" className="text-blue-500 underline">
             Daftar
           </a>
         </p>
+
+        {/* Tombol Google di bawah tulisan "Belum punya akun?" */}
+        <button
+          onClick={handleGoogleLogin}
+          className="bg-white border border-gray-300 text-gray-700 w-full p-2 rounded-md mt-4 flex items-center justify-center hover:bg-gray-100"
+        >
+          <img
+            src="https://www.svgrepo.com/show/475656/google-color.svg"
+            alt="Google"
+            className="w-5 h-5 mr-2"
+          />
+          Masuk dengan Google
+        </button>
       </div>
     </div>
   )
